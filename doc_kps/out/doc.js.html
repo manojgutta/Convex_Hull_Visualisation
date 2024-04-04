@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>doc.js - Documentation</title>
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav >
+    
+    
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Point.html">Point</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addPoint">addPoint</a></li><li><a href="global.html#animateConnect">animateConnect</a></li><li><a href="global.html#animateConnect2">animateConnect2</a></li><li><a href="global.html#animateConnect3">animateConnect3</a></li><li><a href="global.html#bridge">bridge</a></li><li><a href="global.html#clearCanvas">clearCanvas</a></li><li><a href="global.html#connect">connect</a></li><li><a href="global.html#convexHull">convexHull</a></li><li><a href="global.html#findMedian">findMedian</a></li><li><a href="global.html#findPoint">findPoint</a></li><li><a href="global.html#findPoint2">findPoint2</a></li><li><a href="global.html#flipped">flipped</a></li><li><a href="global.html#generateConvexHull">generateConvexHull</a></li><li><a href="global.html#generateRandomPoints">generateRandomPoints</a></li><li><a href="global.html#getRandomArbitrary">getRandomArbitrary</a></li><li><a href="global.html#medianOfMedians">medianOfMedians</a></li><li><a href="global.html#points">points</a></li><li><a href="global.html#redrawPoints">redrawPoints</a></li><li><a href="global.html#upperHull">upperHull</a></li></ul>
+    
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">doc.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * Represents a point in 2D space.
+ * @class
+ */
+class Point {
+    /**
+     * A point type object to store the specified coordinates.
+     * @param {number} x - The x-coordinate.
+     * @param {number} y - The y-coordinate.
+     */
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+}
+
+/**
+ * Set to store points clicked on the canvas.
+ * @type {Set&lt;Point>}
+ */
+let points = new Set();
+
+/**
+ * Adds a point to the canvas on click.
+ * @param {MouseEvent} event - The mouse event object.
+ */
+function addPoint(event) {
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    points.add(new Point(x, y));
+    redrawPoints();
+}
+
+/**
+ * Redraws all points on the canvas.
+ */
+function redrawPoints() {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = 'blue';
+    for (const point of points) {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 9, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+canvas.addEventListener('click', addPoint);
+
+/**
+ * Clears the canvas before setting up for the next set of points.
+ */
+function clearCanvas() {
+    points.clear();
+    redrawPoints();
+}
+
+/**
+ * Flips the points by negating their coordinates.
+ * @param {Point[]} points - The array of points to flip.
+ * @returns {Point[]} The array of flipped points.
+ */
+function flipped(points) {
+    return points.map(point => new Point(-point.x, -point.y));
+}
+
+
+/**
+ * Generates a random number within the specified range. Used to generate the point co-ordinates randomly.
+ * @param {number} min - The minimum value of the range.
+ * @param {number} max - The maximum value of the range.
+ * @returns {number} A random number within the range.
+ */
+function getRandomArbitrary(min, max) {
+    return Math.random() * (max - min) + min;
+}
+
+/**
+ * Generates a set of random points within the specified range using the getRandomArbitrary function wherever required.
+ */
+function generateRandomPoints() {
+    const sample = parseInt(document.getElementById('sample').value);
+    const xRange = [50, 5950];
+    const yRange = [50, 2650];
+    points = new Set();
+    while (points.size &lt; sample) {
+        const x = getRandomArbitrary(xRange[0], xRange[1]);
+        const y = getRandomArbitrary(yRange[0], yRange[1]);
+        points.add(new Point(x, y));
+    }
+    redrawPoints();
+}
+
+/**
+ * Applies the necessary algorithm and finds the bridge that might fit into the hull, for the given set of points and median co-ordinate.
+ * @param {Set&lt;Point>} points - The set of points.
+ * @param {number} verticalLine - The x-coordinate of the vertical line.
+ * @returns {Point[]} The bridge points.
+ */
+function bridge(points, verticalLine) {
+    let candidates = new Set();
+    while (true) {
+        if ([...points].length === 2) {
+            return [...points].sort((a, b) => a.x - b.x);
+        }
+
+        let pairs = [];
+        let modifyS = new Set(points);
+
+        while (modifyS.size >= 2) {
+            const point1 = modifyS.values().next().value;
+            modifyS.delete(point1);
+            const point2 = modifyS.values().next().value;
+            modifyS.delete(point2);
+            pairs.push([point1, point2].sort((a, b) => a.x - b.x));
+        }
+
+        if (modifyS.size === 1) {
+            const point3 = modifyS.values().next().value;
+            candidates.add(point3);
+            modifyS.delete(point3);
+        }
+
+        let slopes = [];
+
+        for (const [pi, pj] of pairs) {
+            if (pi.x === pj.x) {
+                pairs = pairs.filter(([a, b]) => !(a === pi &amp;&amp; b === pj));
+                candidates.add(pi.y > pj.y ? pi : pj);
+            } else {
+                slopes.push((pi.y - pj.y) / (pi.x - pj.x));
+            }
+        }
+
+        const medianIndex = Math.floor(slopes.length / 2) - (slopes.length % 2 === 0 ? 1 : 0);
+        const medianSlope = quickselect([...slopes], 0, slopes.length - 1, medianIndex);
+
+        const small = new Set(pairs.filter(([_, __], i) => slopes[i] &lt; medianSlope));
+        const equal = new Set(pairs.filter(([_, __], i) => Math.abs(slopes[i] - medianSlope) &lt; 0.001));
+        const large = new Set(pairs.filter(([_, __], i) => slopes[i] > medianSlope));
+
+        const maxSlope = Math.max(...[...points].map(point => point.y - medianSlope * point.x));
+        const maxSet = [...points].filter(point => Math.abs(point.y - medianSlope * point.x - maxSlope) &lt; 0.001);
+        const left = maxSet.reduce((acc, cur) => (cur.x &lt; acc.x ? cur : acc), maxSet[0]);
+        const right = maxSet.reduce((acc, cur) => (cur.x > acc.x ? cur : acc), maxSet[0]);
+
+        if (left.x &lt;= verticalLine &amp;&amp; right.x > verticalLine) {
+            return [left, right];
+        }
+
+        if (right.x &lt;= verticalLine) {
+            for (const [_, point] of [...large, ...equal]) {
+                candidates.add(point);
+            }
+            for (const pair of small) {
+                candidates.add(pair[0]);
+                candidates.add(pair[1]);
+            }
+        }
+
+        if (left.x > verticalLine) {
+            for (const [point, _] of [...small, ...equal]) {
+                candidates.add(point);
+            }
+            for (const pair of large) {
+                candidates.add(pair[0]);
+                candidates.add(pair[1]);
+            }
+        }
+
+        points = candidates;
+        candidates = new Set();
+    }
+}
+
+/**
+ * Finds the approximate median of an array using the median of medians algorithm, with a worst case complexity of O(n).
+ * @param {number[]} arr - The input array.
+ * @param {number} left - The left index of the subarray.
+ * @param {number} right - The right index of the subarray.
+ * @param {number} k - The desired index of the median.
+ * @returns {number} The approximate median of the array.
+ */
+function medianOfMedians(arr, left, right, k) {
+    while (true) {
+        if (left === right) return arr[left];
+        
+        // Divide arr into groups of 5 elements and find median of each group
+        for (let i = left; i &lt;= right; i += 5) {
+            const subRight = Math.min(i + 4, right);
+            const medianIndex = Math.floor((i + subRight) / 2);
+            const medianValue = findMedian(arr, i, subRight); // Calculate median of current group
+            [arr[medianIndex], arr[left + Math.floor((i - left) / 5)]] = [arr[left + Math.floor((i - left) / 5)], arr[medianIndex]];
+        }
+        
+        // Find the median of medians
+        let pivotIndex = left + Math.floor((right - left) / 10);
+        let pivotValue = arr[pivotIndex];
+        let storeIndex = left;
+        [arr[pivotIndex], arr[right]] = [arr[right], arr[pivotIndex]];
+        
+        // Partition around the pivot value
+        for (let i = left; i &lt; right; i++) {
+            if (arr[i] &lt; pivotValue) {
+                [arr[i], arr[storeIndex]] = [arr[storeIndex], arr[i]];
+                storeIndex++;
+            }
+        }
+        
+        [arr[storeIndex], arr[right]] = [arr[right], arr[storeIndex]];
+        pivotIndex = storeIndex;
+        
+        // Determine in which partition the median of medians lies
+        if (k === pivotIndex) {
+            return arr[k];
+        } else if (k &lt; pivotIndex) {
+            right = pivotIndex - 1;
+        } else {
+            left = pivotIndex + 1;
+        }
+    }
+}
+
+/**
+ * Finds the median of a subarray.
+ * @param {number[]} arr - The input array.
+ * @param {number} start - The start index of the subarray.
+ * @param {number} end - The end index of the subarray.
+ * @returns {number} The median of the subarray.
+ */
+function findMedian(arr, start, end) {
+    const subarray = arr.slice(start, end + 1);
+    subarray.sort((a, b) => a - b);
+    return subarray[Math.floor(subarray.length / 2)];
+}
+
+
+/**
+ * Function that makes the bridge calls and builds the hull points based on that, recursively.
+ * @param {Point} lower - The leftmost point.
+ * @param {Point} upper - The rightmost point.
+ * @param {Set&lt;Point>} points - The set of points that we need to search for the bridge.
+ * @returns {Point[]} The connected points forming the convex hull.
+ */
+function connect(lower, upper, points) {
+    if (lower === upper) {
+        return [lower];
+    }
+    const maxLeft = quickselect2([...points], 0, [...points].length - 1, Math.floor(points.length / 2) - 1);
+    const minRight = quickselect2([...points], 0, [...points].length - 1, Math.floor(points.length / 2));
+    const midX = (maxLeft.x + minRight.x) / 2;
+    const [left, right] = bridge([...points], midX);
+    const pointsLeft = new Set([left]);
+    const pointsRight = new Set([right]);
+
+    for (const point of points) {
+        if (point.x &lt; left.x) {
+            pointsLeft.add(point);
+        }
+        if (point.x > right.x) {
+            pointsRight.add(point);
+        }
+    }
+
+    return connect(lower, left, [...pointsLeft])
+        .concat(connect(right, upper, [...pointsRight]));
+}
+
+/**
+ * Finds the leftmost and highest point in a set of points.
+ * @param {Point[]} points - The array of points to search.
+ * @returns {Point} The leftmost and highest point.
+ */
+function findPoint(points) {
+    let lowestX = Infinity;
+    let highestY = -Infinity;
+    let selectedPoint = null;
+
+    for (const point of points) {
+        if (point.x &lt; lowestX) {
+            lowestX = point.x;
+            highestY = point.y;
+            selectedPoint = point;
+        } else if (point.x === lowestX &amp;&amp; point.y > highestY) {
+            highestY = point.y;
+            selectedPoint = point;
+        }
+    }
+
+    return selectedPoint;
+}
+
+/**
+ * Finds the rightmost and highest point in a set of points.
+ * @param {Point[]} points - The array of points to search.
+ * @returns {Point} The rightmost and highest point.
+ */
+function findPoint2(points) {
+    let highestX = -Infinity;
+    let highestY = -Infinity;
+    let selectedPoint = null;
+
+    for (const point of points) {
+        if (point.x > highestX) {
+            highestX = point.x;
+            highestY = point.y;
+            selectedPoint = point;
+        } else if (point.x === highestX &amp;&amp; point.y > highestY) {
+            highestY = point.y;
+            selectedPoint = point;
+        }
+    }
+
+    return selectedPoint;
+}
+
+/**
+ * Finds the upper hull of a set of points by making the required function calls.
+ * @param {Set&lt;Point>} points - The set of points.
+ * @returns {Point[]} The upper hull points.
+ */
+function upperHull(points) {
+    let lower = findPoint([...points])
+    let upper = findPoint2([...points])
+    let points2 = new Set([lower, upper, ...points.filter(point => lower.x &lt; point.x &amp;&amp; point.x &lt; upper.x)]);
+
+    return connect(lower, upper, [...points2]);
+}
+
+/**
+ * Function that starts the algorithm that finds the convex hull of a set of points.
+ * @param {Set&lt;Point>} points - The set of points.
+ * @returns {Point[]} The points forming the convex hull.
+ */
+function convexHull(points) {
+    const upper = [...upperHull([...points])]
+    const lower = [...flipped(upperHull([...flipped([...points])]))]
+
+    if (upper[upper.length - 1].x === lower[0].x &amp;&amp; upper[upper.length - 1].y === lower[0].y) {
+        upper.pop();
+    }
+
+    if (upper[0].x === lower[lower.length - 1].x &amp;&amp; upper[0].y === lower[lower.length - 1].y) {
+        lower.pop();
+    }
+
+    return [upper, lower, upper.concat(lower)];
+}
+
+
+/**
+ * Generates and visualizes the convex hull of random points.
+ */
+function generateConvexHull() {
+    const [upper, lower, answer] = convexHull([...points]);
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = 'blue';
+    for (const point of points) {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 9, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.fillStyle = 'red';
+    for (const point of upper) {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 9, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.fillStyle = 'yellow';
+    for (const point of lower) {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 11, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    // Draw convex hull (animate)
+    animateConnect(ctx, upper);
+    animateConnect2(ctx, lower);
+    animateConnect3(ctx, [upper[upper.length - 1], lower[0]]);
+    animateConnect3(ctx, [lower[lower.length - 1], upper[0]]);
+}
+
+/**
+ * Animates the connection of points on the canvas.
+ * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
+ * @param {Point[]} points - The array of points to connect.
+ * @param {number} [currentIndex=0] - The current index of the connection.
+ * @param {number} [delay=120] - The delay between each frame (in milliseconds).
+ */
+function animateConnect(ctx, points, currentIndex = 0, delay = 120) {
+    if (currentIndex === points.length - 1) {
+        ctx.strokeStyle = 'green';
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for (const point of points.slice(1)) {
+            ctx.lineTo(point.x, point.y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        return;
+    }
+
+    ctx.strokeStyle = 'green';
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(points[currentIndex].x, points[currentIndex].y);
+    ctx.lineTo(points[currentIndex + 1].x, points[currentIndex + 1].y);
+    ctx.stroke();
+
+    currentIndex++;
+
+    setTimeout(() => {
+        requestAnimationFrame(() => animateConnect(ctx, points, currentIndex, delay));
+    }, delay);
+}
+
+/**
+ * Animates the connection of points on the canvas.
+ * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
+ * @param {Point[]} points - The array of points to connect.
+ * @param {number} [currentIndex=0] - The current index of the connection.
+ * @param {number} [delay=120] - The delay between each frame (in milliseconds).
+ */
+function animateConnect2(ctx, points, currentIndex = 0, delay = 120) {
+    if (currentIndex === points.length - 1) {
+        ctx.strokeStyle = 'pink';
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for (const point of points.slice(1)) {
+            ctx.lineTo(point.x, point.y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        return;
+    }
+
+    ctx.strokeStyle = 'pink';
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(points[currentIndex].x, points[currentIndex].y);
+    ctx.lineTo(points[currentIndex + 1].x, points[currentIndex + 1].y);
+    ctx.stroke();
+
+    currentIndex++;
+
+    setTimeout(() => {
+        requestAnimationFrame(() => animateConnect2(ctx, points, currentIndex, delay));
+    }, delay);
+}
+
+/**
+ * Animates the connection of points on the canvas.
+ * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
+ * @param {Point[]} points - The array of points to connect.
+ * @param {number} [currentIndex=0] - The current index of the connection.
+ * @param {number} [delay=120] - The delay between each frame (in milliseconds).
+ */
+function animateConnect3(ctx, points, currentIndex = 0, delay = 120) {
+    if (currentIndex === points.length - 1) {
+        ctx.strokeStyle = 'purple';
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for (const point of points.slice(1)) {
+            ctx.lineTo(point.x, point.y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        return;
+    }
+
+    ctx.strokeStyle = 'purple';
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(points[currentIndex].x, points[currentIndex].y);
+    ctx.lineTo(points[currentIndex + 1].x, points[currentIndex + 1].y);
+    ctx.stroke();
+
+    currentIndex++;
+
+    setTimeout(() => {
+        requestAnimationFrame(() => animateConnect3(ctx, points, currentIndex, delay));
+    }, delay);
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.2</a> on Thu Apr 04 2024 18:36:30 GMT+0530 (India Standard Time) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+
+
+</body>
+</html>
