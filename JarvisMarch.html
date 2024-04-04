@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convex Hull Animation</title>
+    <style>
+        canvas {
+            /* border: 3px solid black; */
+            background-color: #111;
+            border: 15px solid;
+            /* Rainbow border */
+            border-image: linear-gradient(to right, violet, indigo, blue, green, yellow, orange, red);
+            border-image-slice: 1;
+        }
+
+        body {
+            background-color: #111;
+            /* Dark background color */
+            color: #fff;
+            /* Text color */
+            font-family: Arial, sans-serif;
+            /* Font family */
+            text-align: center;
+            /* Center align text */
+        }
+
+        button {
+            background-color: #00ffcc;
+            /* Neon color */
+            color: #111;
+            /* Button text color */
+            padding: 20px 40px;
+            /* Button padding */
+            font-size: 34px;
+            /* Button font size */
+            border: none;
+            /* Remove button border */
+            cursor: pointer;
+            /* Cursor style */
+            margin: 20px;
+            /* Button margin */
+            border-radius: 30px;
+            /* Button border radius */
+            box-shadow: -3px 15px 9px rgba(196, 34, 255, 0.1);
+            /* Button shadow */
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            /* Button transition */
+        }
+
+        button:hover {
+            background-color: #FFFF33;
+            /* Neon color on hover */
+            box-shadow: -3px 15px 7px rgba(196, 34, 255, 0.1);
+            /* Button shadow */
+            transform: translateY(-5px);
+            /* Button transform on hover */
+        }
+
+        label {
+            font-size: 40px;
+            /* Label font size */
+            margin-right: 10px;
+            /* Right margin */
+        }
+
+        input[type="number"] {
+            font-size: 34px;
+            /* Input font size */
+            padding: 10px;
+            /* Input padding */
+            border-radius: 10px;
+            /* Input border radius */
+            border: 2px solid #00ffcc;
+            /* Input border */
+            background-color: #111;
+            color: #fff;
+            
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+</head>
+
+<body>
+    <label for="sampleInput">Enter sample size:</label>
+    <input type="number" id="sampleInput" min="1" value="100">
+    <button onclick="generateRandomPoints()">Generate Random Points</button>
+    <button onclick="runConvexHull()">Run Convex Hull</button>
+    <button onclick="clearCanvas()">Clear Canvas</button>
+    <div id="canvasContainer"></div>
+
+    <script>
+        let pointColor = [249, 127, 81];
+        let hullColor = [255, 0, 0];
+        let lineColor = [37, 204, 247];
+
+        let coords = [];
+        let hull = [];
+        let currentPoint;
+        let sampleInput = document.getElementById('sampleInput');
+        let canvas;
+
+        let addingPoints = true;
+
+        function setupCanvas() {
+            canvas = createCanvas(6000, 2750);
+            canvas.parent('canvasContainer');
+        }
+
+        function setup() {
+            setupCanvas();
+            frameRate(4); // Set the frame rate to 1 frame per second
+        }
+
+        function clearCanvas() {
+            coords = [];
+            hull = [];
+            clear();
+            addingPoints = true;
+        }
+
+        function generateRandomPoints() {
+            clearCanvas();
+            let sample = parseInt(sampleInput.value);
+            coords = [];
+            for (let i = 0; i < sample; i++) {
+                let x = random(30, width - 100);
+                let y = random(30, height - 100);
+                coords.push([x, y]);
+            }
+            drawPoints();
+        }
+
+        function runConvexHull() {
+            if (coords.length < 3) {
+                alert("At least 3 points are needed to run Convex Hull.");
+                return;
+            }
+            addingPoints = false;
+            hull = [];
+            let leftmostX = Math.min(...coords.map(coord => coord[0]));
+            currentPoint = coords.find(coord => coord[0] === leftmostX);
+            hull.push(currentPoint);
+            loop();
+        }
+
+        function mouseClicked() {
+            if (addingPoints && mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
+                coords.push([mouseX, mouseY]);
+                clear();
+                drawPoints();
+            }
+        }
+
+        function drawPoints() {
+            background(255);
+            for (let coord of coords) {
+                fill(pointColor);
+                noStroke();
+                circle(coord[0], coord[1], 20);
+            }
+        }
+
+        function draw() {
+            if (!addingPoints) {
+                // Draw convex hull algorithm
+                for (let i = 0; i < hull.length - 1; i++) {
+                    stroke(hullColor);
+                    strokeWeight(8);
+                    line(hull[i][0], hull[i][1], hull[i + 1][0], hull[i + 1][1]);
+                }
+
+                let nextPoint = coords[(coords.indexOf(currentPoint) + 1) % coords.length];
+                for (let checkPoint of coords) {
+                    stroke(lineColor);
+                    strokeWeight(1);
+                    line(currentPoint[0], currentPoint[1], checkPoint[0], checkPoint[1]);
+                    if (direction(currentPoint, nextPoint, checkPoint)) {
+                        nextPoint = checkPoint;
+                    }
+                }
+                currentPoint = nextPoint;
+                hull.push(currentPoint);
+                if (hull.length > 2 && currentPoint[0] === hull[0][0] && currentPoint[1] === hull[0][1]) {
+                    stroke(hullColor);
+                    strokeWeight(8);
+                    line(hull[hull.length - 1][0], hull[hull.length - 1][1], hull[0][0], hull[0][1]); // Connect last point to first point
+                }
+                if (hull.length > 2 && currentPoint[0] === hull[1][0] && currentPoint[1] === hull[1][1]) {
+                    noLoop();
+                }
+            }
+        }
+
+        function direction(a, b, c) {
+            return ((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) < 0;
+        }
+    </script>
+</body>
+
+</html>
